@@ -1,47 +1,29 @@
+// src/config/zod-schema.providers.ts
 import { z } from "zod";
-import { ChannelHeartbeatVisibilitySchema } from "./zod-schema.channels.js";
-import { GroupPolicySchema } from "./zod-schema.core.js";
-import {
-  BlueBubblesConfigSchema,
-  DiscordConfigSchema,
-  GoogleChatConfigSchema,
-  IMessageConfigSchema,
-  IrcConfigSchema,
-  MSTeamsConfigSchema,
-  SignalConfigSchema,
-  SlackConfigSchema,
-  TelegramConfigSchema,
-} from "./zod-schema.providers-core.js";
-import { WhatsAppConfigSchema } from "./zod-schema.providers-whatsapp.js";
 
-export * from "./zod-schema.providers-core.js";
-export * from "./zod-schema.providers-whatsapp.js";
-export { ChannelHeartbeatVisibilitySchema } from "./zod-schema.channels.js";
-
-const ChannelModelByChannelSchema = z
-  .record(z.string(), z.record(z.string(), z.string()))
-  .optional();
-
-export const ChannelsSchema = z
-  .object({
-    defaults: z
-      .object({
-        groupPolicy: GroupPolicySchema.optional(),
-        heartbeat: ChannelHeartbeatVisibilitySchema,
-      })
-      .strict()
+/**
+ * Minimal provider schema – only Ollama is allowed.
+ * This guarantees that a user cannot accidentally configure an external
+ * service.
+ */
+export const providersSchema = z.object({
+  ollama: z.object({
+    apiKey: z.string().optional(),
+    baseUrl: z.string().url().optional(),
+    models: z
+      .array(
+        z.object({
+          id: z.string(),
+          name: z.string(),
+          // Fields required by the runtime; everything else is optional.
+          contextWindow: z.number().optional(),
+          maxTokens: z.number().optional(),
+          input: z.array(z.string()).optional(),
+        }),
+      )
       .optional(),
-    modelByChannel: ChannelModelByChannelSchema,
-    whatsapp: WhatsAppConfigSchema.optional(),
-    telegram: TelegramConfigSchema.optional(),
-    discord: DiscordConfigSchema.optional(),
-    irc: IrcConfigSchema.optional(),
-    googlechat: GoogleChatConfigSchema.optional(),
-    slack: SlackConfigSchema.optional(),
-    signal: SignalConfigSchema.optional(),
-    imessage: IMessageConfigSchema.optional(),
-    bluebubbles: BlueBubblesConfigSchema.optional(),
-    msteams: MSTeamsConfigSchema.optional(),
-  })
-  .passthrough() // Allow extension channel configs (nostr, matrix, zalo, etc.)
-  .optional();
+  }),
+});
+
+/** Exported type used by the rest of the code‑base. */
+export type Providers = z.infer<typeof providersSchema>;
